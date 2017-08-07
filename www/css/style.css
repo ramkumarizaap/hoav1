@@ -80,3 +80,11 @@ overflow:auto;}
 .comments-modal .comment-footer .input input{width: 100%;padding-right: 10px;}
 .comments-modal .comment-footer .button-div{float: right;width: 15%;height: 100%;}
 .comments-modal .comment-footer .button-div button{border-radius: 0;height: 100%;width: 100%;}
+.inv-status{width: 20%;padding: 5px;margin-top: 10px;margin-left: 10px;text-align: center;font-weight: bold;float: left;}
+.inv-pay{width: 35%;padding: 5px;margin-top: 10px;margin-left: 10px;text-align: center;font-weight: bold;float: right;border: 1px solid #00ff1f;background: #b3f3b3;margin-right: 10px;}
+.inv-status.due,.inv-status.unpaid{background: #f1b0b0;color: red;border: 1px solid red;}
+.inv-status.paid{background: #b4f1b0;color: #268401;border: 1px solid #37802a;}
+.inv-status.draft{background: #dadada;color: #828282;border: 1px solid #a0a0a0;}
+.list:last-child.card {padding-bottom: 10px;}
+.invoice .inv-amount{text-align: center;font-size: 26px;font-weight: bold;}
+.invoice .inv-img{position: absolute;top: 16px;left: 16px;max-width: 40px;max-height: 40px;width: 100%;height: 100%;border-radius: 50%;font-size: 40px;}
