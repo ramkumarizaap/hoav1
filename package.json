@@ -13,18 +13,27 @@
         "ionic": "3.6.0"
     },
     "dependencies": {
+        "com-sarriaroman-photoviewer": "^1.1.10",
+        "com.synconset.imagepicker": "~2.1.8",
         "cordova-android": "^6.2.3",
         "cordova-plugin-camera": "^2.4.1",
         "cordova-plugin-compat": "^1.1.0",
-        "cordova-plugin-imagepicker": "^1.3.0",
-        "cordova-plugin-telerik-imagepicker": "^2.1.8",
-        "com.synconset.imagepicker": "~2.1.8",
         "cordova-plugin-console": "1.0.5",
         "cordova-plugin-device": "1.1.4",
+        "cordova-plugin-file": "^4.0.0",
+        "cordova-plugin-file-transfer": "^1.6.3",
+        "cordova-plugin-imagepicker": "^1.3.0",
+        "cordova-plugin-media-capture": "^1.4.3",
+        "cordova-plugin-photokandy-video-thumbnail": "~2.1.0",
         "cordova-plugin-splashscreen": "~4.0.1",
         "cordova-plugin-statusbar": "2.2.1",
+        "cordova-plugin-streaming-media": "^1.0.2",
+        "cordova-plugin-telerik-imagepicker": "^2.1.8",
+        "cordova-plugin-video-thumbnail": "^2.0.1",
         "cordova-plugin-whitelist": "1.3.1",
-        "ionic-plugin-keyboard": "~2.2.1"
+        "cordova.plugins.diagnostic": "^3.6.5",
+        "ionic-plugin-keyboard": "~2.2.1",
+        "com.hutchind.cordova.plugins.streamingmedia": "~0.1.4"
     },
     "cordova": {
         "plugins": {
@@ -36,7 +45,12 @@
             "cordova-plugin-splashscreen": {},
             "cordova-plugin-statusbar": {},
             "cordova-plugin-whitelist": {},
-            "ionic-plugin-keyboard": {}
+            "ionic-plugin-keyboard": {},
+            "cordova-plugin-file-transfer": {},
+            "cordova.plugins.diagnostic": {},
+            "cordova-plugin-photokandy-video-thumbnail": {},
+            "cordova-plugin-media-capture": {},
+            "com.hutchind.cordova.plugins.streamingmedia": {}
         }
     }
 }

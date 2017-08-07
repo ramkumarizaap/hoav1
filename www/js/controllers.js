@@ -17,49 +17,354 @@ angular.module('starter.controllers', ['ngCordova'])
 
 })
 
-.controller('HomeCtrl', function($scope,$ionicModal) {
+.controller('HomeCtrl', function($q,$scope,$ionicModal,$cordovaImagePicker,$rootScope,$cordovaCapture,$ionicActionSheet,HomeService,$cordovaFileTransfer,$cordovaCamera,$ionicPopup,$ionicLoading,$timeout) {
+  $scope.feed = {};
+  $scope.feed.img = "";
+  $scope.type = "";
+  var comments = "";
   
-  $ionicModal.fromTemplateUrl('../templates/post-feed.html', {
+  $scope.commentip = {message:null};
+  $rootScope.imgthumb = "";$rootScope.videothumb = "";
+  var userdetails = JSON.parse(sessionStorage.getItem('userdetails'));
+  $ionicModal.fromTemplateUrl('./templates/post-feed.html', {
     scope: $scope,
     animation: 'slide-in-up'
   }).then(function(modal) {
     $scope.modal = modal;
   });
+  $ionicModal.fromTemplateUrl('./templates/comments.html', {
+      scope: $scope,
+      animation: 'slide-in-up'
+    }).then(function(modal) {
+      comments = modal;
+    });
+    
+  $scope.getFeed = function()
+  {
+    $ionicLoading.show();
+    HomeService.getFeed(userdetails.id).success(function(data){
+      $scope.feeds = data.msg;
+      $scope.numberOfItemsToDisplay = 2;
+      $scope.noMoreItemsAvailable = false;
+      $ionicLoading.hide();
+    }).error(function(data){
+      $ionicLoading.hide();
+      $scope.feeds= [];
+      $scope.noMoreItemsAvailable = true;
+      $ionicPopup.alert({title:"No Feeds!",template:data.msg});
+    });
+  }
+  $scope.getFeed();
+  // $scope.feeds = [{},{},{}];
+  $scope.doRefresh = function()
+  {
+    $scope.getFeed();
+    $timeout(function() {
+       $scope.$broadcast('scroll.refreshComplete');
+     }, 3000);
+  }
+
   $scope.showPostFeed = function ()
   {
-     $scope.modal.show();
+    $scope.modal.show();
   };
   $scope.closePostFeed = function()
   {
     $scope.modal.hide();
   };
+  $scope.removePhoto = function() 
+  {
+    $scope.feed.img = "";$rootScope.videothumb = "";$rootScope.imgthumb="";
+  }
+  $scope.getImage = function ()
+  {
+    $scope.feed.img =  "";$rootScope.videothumb =  "";
+     var hideSheet = $ionicActionSheet.show({
+         buttons: [
+           { text: 'Take New Photo' },
+           { text: 'Choose From Gallery' },
+         
+         ],
+         buttonClicked: function(index) 
+         {
+            if(index==0)
+            {
+              var options = {
+                  quality: 100,
+                  destinationType: Camera.DestinationType.FILE_URL,
+                  sourceType: Camera.PictureSourceType.CAMERA,
+                  allowEdit: false,
+                  encodingType: Camera.EncodingType.PNG,
+                  popoverOptions: CameraPopoverOptions,
+                  saveToPhotoAlbum: false,
+                  correctOrientation:false
+                };
+                $cordovaCamera.getPicture(options).then(function(imageData) {
+                  $scope.feed.img =  imageData;
+                  $rootScope.imgthumb = imageData;
+                  $scope.type = "image";
+                }, function(err) {
+                  $ionicPopup.alert({title:"Error!",template:"Something went wrong."});
+                });
+            }
+            else
+            {
+              var options = {
+                  quality: 100,
+                  destinationType: Camera.DestinationType.FILE_URL,
+                  sourceType: Camera.PictureSourceType.PHOTOLIBRARY,
+                  allowEdit: false,
+                  encodingType: Camera.EncodingType.PNG,
+                  popoverOptions: CameraPopoverOptions,
+                  saveToPhotoAlbum: false,
+                  correctOrientation:false
+                };
+                $cordovaCamera.getPicture(options).then(function(imageData) {
+                  $scope.feed.img =  imageData;
+                  $rootScope.imgthumb = imageData;
+                  $scope.type = "image";
+                }, function(err) {
+                  $ionicPopup.alert({title:"Error!",template:"Something went wrong."});
+                });
+            }
+            return true;
+         }
+       });
+  };
   
+  $scope.getVideo = function()
+  {
+    $scope.feed.img =  "";$rootScope.imgthumb =  "";
+     var hideSheet1 = $ionicActionSheet.show({
+         buttons: [{ text: 'Take New Video' },{ text: 'Choose From Gallery' },],
+         buttonClicked: function(index) 
+         {
+            if(index==0)
+            {
+              var options = { limit: 1, duration: 5 };
+              $cordovaCapture.captureVideo(options).then(function(videoData) {
+                  $rootScope.videothumb = videoData[0].fullPath;
+                  $scope.feed.img = videoData[0].fullPath;
+                }, function(err) {
+                    $ionicPopup.alert({title:"Error!",template:"Something went wrong."});
+                });
+            }
+            else if(index==1)
+            {
+              var options = {
+                    quality: 100,
+                    destinationType: Camera.DestinationType.FILE_URL,
+                    sourceType: Camera.PictureSourceType.PHOTOLIBRARY,
+                    mediaType:Camera.MediaType.VIDEO,
+                    allowEdit: false,
+                    encodingType: Camera.EncodingType.PNG,
+                    targetWidth: 100,
+                    targetHeight: 100,
+                    popoverOptions: CameraPopoverOptions,
+                    saveToPhotoAlbum: false,
+                    correctOrientation:false
+                  };
+                  $cordovaCamera.getPicture(options).then(function(videoData) {
+                    $scope.feed.img =  videoData;
+                    $rootScope.videothumb =  videoData;
+                    $scope.type = "video";
+                  }, function(err) {
+                    $ionicPopup.alert({title:"Error!",template:"Something went wrong!"});
+                  });
+            }
+            return true;
+        }
+      });
+    }
+
+  $scope.postfeed = function ()
+  {    
+    $scope.feed.user_id = userdetails.id;
+    $ionicLoading.show();
+    HomeService.postfeed($scope.feed).success(function(data){
+      $ionicLoading.hide();
+      if($scope.feed.img!='')
+      {
+        $ionicLoading.show({template:"Uploading file please wait..."});
+        uploadFile($scope.feed.img,userdetails.id,$scope.type,data.row_id).then(function(res){
+          $ionicLoading.hide();
+          if(res=="true" || res==true)    
+          {
+            $ionicPopup.alert({title:"Post Success!",template:data.msg}).then(function(data){
+              $scope.closePostFeed();
+              $scope.feed = {};$scope.feed.img = "";$scope.type = "";
+              $scope.doRefresh();
+            });
+          }
+          else
+          {
+            $ionicPopup.alert({title:"Post Failed!",template:data.msg}).then(function(data){
+              $scope.closePostFeed();
+              $scope.feed = {};$scope.feed.img = "";$scope.type = "";
+              $scope.doRefresh();
+            });
+          }
+        });
+      }
+      else
+      {
+        $ionicPopup.alert({title:"Post Success!",template:data.msg}).then(function(data){
+          $ionicLoading.hide();
+          $scope.closePostFeed();
+          $scope.feed = {};$scope.feed.img = "";$scope.type = "";
+          $scope.doRefresh();
+        });
+      }
+    }).error(function(data){
+      $ionicLoading.hide();
+      $ionicPopup.alert({title:"Post Failed!",template:data.msg});
+    });
+  }
+  $scope.playVideo = function(url)
+  {
+    window.plugins.streamingMedia.playVideo(url);
+  }
+
+  $scope.showComment = function(stream_id)
+  {
+    $scope.getComments(stream_id);
+    comments.show();
+  };
+  $scope.closeComments = function()
+  {
+    comments.hide();
+    $scope.getFeed();
+  };
+  $scope.getComments = function(stream_id)
+  {
+    $scope.str_id = stream_id;
+    $ionicLoading.show();
+    HomeService.getComments(stream_id).success(function(data){
+      $ionicLoading.hide();
+      $scope.comments = data.msg;
+    })
+    .error(function(){
+      $ionicLoading.hide();
+      $ionicPopup.alert({title:"Error!",template:"No Comments found."});
+    });
+  }
+  $scope.postcomment = function(comment,id)
+  {
+    $ionicLoading.show();
+    HomeService.postComment(comment.message,id,userdetails.id).success(function(data){
+        $ionicLoading.hide();
+        $scope.commentip.message = "";
+      $ionicPopup.alert({title:"Success!",template:data.msg}).then(function(data){
+        $scope.getComments(id);
+      });
+    })
+    .error(function(data){
+      $ionicLoading.hide();
+      $ionicPopup.alert({title:"Error!",template:data.msg});
+    });
+  }
+  $scope.postlike = function(id)
+  {
+    $ionicLoading.show();
+    HomeService.postLike(id,userdetails.id).success(function(data){
+        $ionicLoading.hide();
+      // $ionicPopup.alert({title:"Success!",template:data.msg}).then(function(data){
+        $scope.getFeed();
+      // });
+    })
+    .error(function(data){
+      $ionicLoading.hide();
+      $ionicPopup.alert({title:"Error!",template:data.msg});
+    });
+  }
+
+  var uploadFile = function(mediaFile,user_id='',type='',row_id='')
+  {
+    var deferred = $q.defer();
+    var path = mediaFile;
+     var url = encodeURI("http://162.144.41.156/~izaapinn/ram/action.php");
+     //File for Upload
+     var targetPath = path;
+     //var params = {};
+     // File name only
+     var filename = targetPath.split("/").pop();
+     var options = {
+         fileKey: "file",
+         fileName: filename,
+        chunkedMode: false,
+        params : {'user_id':user_id,'action':"feedupload",type:type,row_id:row_id}
+     };
+     $cordovaFileTransfer.upload(url, targetPath, options).then(function (result) {
+        deferred.resolve('true');
+     }, function (err) {
+         deferred.reject('false');
+     }, function (progress) {
+         // PROGRESS HANDLING GOES HERE
+     });  
+
+     return deferred.promise;
+  }
+
+  /*Start Feeds Load More Functionality */
+  $scope.numberOfItemsToDisplay = 2;
+  $scope.loadMore = function() {
+    $ionicLoading.show();
+    $scope.noMoreItemsAvailable = false;
+    $timeout(function() {
+      $ionicLoading.hide();
+      $scope.numberOfItemsToDisplay += 1;
+      if($scope.feeds.length == $scope.numberOfItemsToDisplay)
+      {
+        $scope.noMoreItemsAvailable = true;
+      }
+      $scope.$broadcast('scroll.infiniteScrollComplete');
+    }, 3000);
+    // alert($scope.feeds.length);
+  };
+
+
 })
 
-.controller('LoginCtrl', function($scope,$state, $stateParams,$ionicLoading,$ionicPopup,$timeout) {
+.controller('LoginCtrl', function($scope,$state, $stateParams,$ionicLoading,$ionicPopup,$timeout,LoginService,$http) {
   $scope.login = {};
   $scope.doLogin = function(form,values){
-    // $ionicLoading.show();
     if(form.$valid)
     {
-      $state.go("app.home",{},{reload:true});
-      // var alert = $ionicPopup.alert({
-      //   title:"Login Failed!",
-      //   template:"Invalid Username or Password."
-      // });
+      $ionicLoading.show();
+      LoginService.login(values).success(function(data){
+        $ionicLoading.hide();
+        sessionStorage.setItem('userdetails',JSON.stringify(data.msg));
+        $state.go("app.home",{},{reload:true});
+      }).error(function(data){
+        $ionicLoading.hide();
+          $ionicPopup.alert({title:"Login Failed!",template:data.msg});
+      });
     }
-    $timeout(function(){
-    $ionicLoading.hide();
-    },2000);
   }
 
 })
 
-.controller('RegisterCtrl', function($scope,$state, $stateParams,$ionicLoading,$ionicPopup,$timeout,$cordovaCamera,$ionicActionSheet, $cordovaImagePicker) {
-
-$scope.img = "img/fresh-upload.png";
-  $scope.UploadPhoto = function()
+.controller('RegisterCtrl', function($scope,$state, $stateParams,$ionicLoading,$ionicPopup,$timeout,$cordovaCamera,$ionicActionSheet, $cordovaImagePicker,RegisterService,$cordovaFileTransfer) {
+  $scope.register = {};
+  $scope.communityok = "false";
+  $scope.community = {};
+  $scope.register.img = "img/fresh-upload.png";
+  $scope.checkCommunity = function(form,values)
     {
+      if(form.$valid)
+      {
+        $ionicLoading.show();
+        RegisterService.checkCommunity(values).success(function(data){
+          $scope.communityok = "true";
+          $ionicLoading.hide();
+        }).error(function(data){
+          $ionicLoading.hide();
+          $ionicPopup.alert({title:"Error!",template:data.msg});
+        });
+      }
+    };
+  $scope.UploadPhoto = function()
+  {
       var hideSheet = $ionicActionSheet.show({
          buttons: [
            { text: 'Take New Photo' },
@@ -71,48 +376,96 @@ $scope.img = "img/fresh-upload.png";
             if(index==0)
             {
               var options = {
-                  quality: 50,
+                  quality: 100,
                   destinationType: Camera.DestinationType.DATA_URL,
                   sourceType: Camera.PictureSourceType.CAMERA,
                   allowEdit: false,
-                  encodingType: Camera.EncodingType.JPEG,
+                  encodingType: Camera.EncodingType.PNG,
                   targetWidth: 100,
                   targetHeight: 100,
                   popoverOptions: CameraPopoverOptions,
                   saveToPhotoAlbum: false,
-                  correctOrientation:true
+                  correctOrientation:false
                 };
                 $cordovaCamera.getPicture(options).then(function(imageData) {
                   var image = document.getElementById('myImage');
-                  $scope.img = "data:image/jpeg;base64," + imageData;
+                  $scope.register.img = "data:image/jpeg;base64," + imageData;
                 }, function(err) {
                   // error
                 });
-
-                //uploadFile(results[i]);
             }
             else
             {
 
                 var options = {
-                 maximumImagesCount: 10,
+                 maximumImagesCount: 1,
                  width: 100,
                  height: 100,
-                 quality: 80
+                 quality: 100
                 };
                $cordovaImagePicker.getPictures(options)
                 .then(function (results) {
                   for (var i = 0; i < results.length; i++) {
-                    $scope.img = results[i];
-                   alert(results[i]);
+                    $scope.register.img = results[i];
                   }
                 }, function(error) {
                   // error getting photos
                 });
             }
           return true;
-         }//enable hidesheet will hide actionsheet
+         }
        });
-    }
+  }
 
-  });
+  $scope.doRegister = function(form,values)
+  {
+    // alert(JSON.stringify($scope.register));
+    if(form.$valid)
+    {
+      $scope.register.communitycode = $scope.community.communitycode;
+      $ionicLoading.show();
+      RegisterService.RegisterUser(values).success(function(data){
+        $ionicLoading.hide();
+        uploadFile($scope.register.img,data.user_id);
+        $ionicPopup.alert({title:"Registration Success!",template:data.msg}).then(function(){
+          $state.go("app.login",{},{reload:true});
+        });
+      })
+      .error(function(data)
+      {
+        $ionicLoading.hide();
+        $ionicPopup.alert({title:"Registration Failed!",template:data.msg});
+      });
+    }
+  }
+
+  function uploadFile(mediaFile,user_id='')
+  {
+    var path = mediaFile;
+     var url = encodeURI("http://162.144.41.156/~izaapinn/ram/action.php");
+     //File for Upload
+     var targetPath = path;
+     //var params = {};
+     // File name only
+     var filename = targetPath.split("/").pop();
+     var options = {
+         fileKey: "file",
+         fileName: filename,
+        chunkedMode: false,
+        params : {'user_id':user_id,'action':"profile"} // directory represents remote directory,  fileName represents final remote file name
+     };
+     $cordovaFileTransfer.upload(url, targetPath, options).then(function (result) {
+       // alert("SUCCESS: " + JSON.stringify(result));
+     }, function (err) {
+        // alert("ERROR: " + JSON.stringify(err));
+     }, function (progress) {
+         // PROGRESS HANDLING GOES HERE
+     });  
+  }
+
+  })
+
+.controller('InvoiceCtrl', function($scope,$state, $stateParams,$ionicLoading,$ionicPopup,$timeout,$cordovaCamera,$ionicActionSheet, $cordovaImagePicker,InvoiceService,$cordovaFileTransfer){
+
+
+});

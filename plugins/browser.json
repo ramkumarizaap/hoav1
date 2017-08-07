@@ -33,10 +33,25 @@
         },
         "cordova-plugin-camera": {
             "PACKAGE_NAME": "io.ionic.starter"
+        },
+        "cordova-plugin-file-transfer": {
+            "PACKAGE_NAME": "io.ionic.starter"
+        },
+        "cordova.plugins.diagnostic": {
+            "PACKAGE_NAME": "io.ionic.starter"
+        },
+        "cordova-plugin-media-capture": {
+            "PACKAGE_NAME": "io.ionic.starter"
+        },
+        "com.hutchind.cordova.plugins.streamingmedia": {
+            "PACKAGE_NAME": "io.ionic.starter"
         }
     },
     "dependent_plugins": {
         "cordova-plugin-compat": {
+            "PACKAGE_NAME": "io.ionic.starter"
+        },
+        "cordova-plugin-file": {
             "PACKAGE_NAME": "io.ionic.starter"
         }
     }
